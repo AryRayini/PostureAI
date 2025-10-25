@@ -19,6 +19,10 @@ exports/
 logs/
 runs/
 user_data/
+exports/.gitkeep
+logs/.gitkeep
+runs/.gitkeep
+user_data/.gitkeep
 
 # ===== OS & EDITORS =====
 .DS_Store
@@ -30,3 +34,17 @@ Thumbs.db
 *.zip
 *.tar
 *.rar
+
+# ===== MODELS & OUTPUT =====
+*.pt
+*.onnx
+*.h5
+*.tflite
+exports/*
+!exports/.gitkeep
+logs/*
+!logs/.gitkeep
+runs/*
+!runs/.gitkeep
+user_data/*
+!user_data/.gitkeep
