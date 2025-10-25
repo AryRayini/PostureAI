@@ -1,8 +1,31 @@
+# ===== PYTHON =====
 __pycache__/
-.vscode/
+*.py[cod]
+*.so
+*.log
+
+# ===== ENVIRONMENT =====
 venv/
-logs/
-user_data/
+env/
+.venv/
+ENV/
+
+# ===== MODELS & OUTPUT =====
+*.pt
+*.onnx
+*.h5
+*.tflite
 exports/
-*.pyc
-*.pyo
+logs/
+runs/
+
+# ===== OS & EDITORS =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===== OTHER =====
+*.zip
+*.tar
+*.rar
