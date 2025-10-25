@@ -18,6 +18,7 @@ ENV/
 exports/
 logs/
 runs/
+user_data/
 
 # ===== OS & EDITORS =====
 .DS_Store
