@@ -21,12 +21,13 @@ def main(image_path):
     analyzer = AlignmentAnalyzer()
     result = analyzer.evaluate_leg_alignment(landmarks, mask)
 
-    # --- Step 4: Display Result ---
+    # --- Step 4: Display Result in resizable window ---
     print(result["summary"])
+    cv2.namedWindow("Knock-Knee / Bow-Leg Detection", cv2.WINDOW_NORMAL)  # <--- make it resizable
     cv2.imshow("Knock-Knee / Bow-Leg Detection", result["visualized_image"])
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    path = "user_data/samples/test_image.jpg"
+    path = "user_data/samples/sample3.jpg"
     main(path)
