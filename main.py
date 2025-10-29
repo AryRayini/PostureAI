@@ -19,7 +19,8 @@ def main(image_path):
 
     # --- Step 3: Fusion & Analysis ---
     analyzer = AlignmentAnalyzer()
-    result = analyzer.evaluate_leg_alignment(landmarks, mask)
+    print("Landmarks:", landmarks)
+    result = analyzer.evaluate_leg_alignment(landmarks, mask, image)
 
     # --- Step 4: Display Result in resizable window ---
     print(result["summary"])
@@ -29,5 +30,5 @@ def main(image_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    path = "user_data/samples/sample3.jpg"
+    path = "user_data/samples/22.jpg"
     main(path)
