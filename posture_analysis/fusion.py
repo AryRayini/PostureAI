@@ -12,6 +12,69 @@ class AlignmentAnalyzer:
       - visual debug overlay
       - mirror detection + confidence
     """
+    def _validate_ankle(self, hip_idx, knee_idx, ankle_idx, landmarks, mask=None):
+        """
+        Correct ankle positions based on:
+        1. Vertical order (hip < knee < ankle)
+        2. Lateral drift relative to knee
+        3. Symmetry with the opposite leg
+        4. Constraining to segmentation mask if available
+        """
+        hip = landmarks[hip_idx]
+        knee = landmarks[knee_idx]
+        ankle = landmarks[ankle_idx]
+
+        if hip is None or knee is None or ankle is None:
+            return ankle
+
+        x, y, z = ankle
+
+        # 1️⃣ Vertical order correction
+        if y <= knee[1]:
+            y = knee[1] + 1
+
+        # 2️⃣ Lateral drift relative to knee
+        max_offset = abs(knee[1] - hip[1]) * 0.35  # 30–35% of thigh
+        if abs(x - knee[0]) > max_offset:
+            x = knee[0]
+
+        # 3️⃣ Symmetry check: nudge ankle toward opposite leg
+        # Use other leg indices: assume L/R based on hip index
+        if hip_idx in [self.L_HIP, self.L_KNEE, self.L_ANKLE]:
+            opp_ankle = landmarks.get(self.R_ANKLE, None)
+            opp_knee = landmarks.get(self.R_KNEE, None)
+        else:
+            opp_ankle = landmarks.get(self.L_ANKLE, None)
+            opp_knee = landmarks.get(self.L_KNEE, None)
+
+        if opp_ankle is not None and opp_knee is not None:
+            # Maintain roughly symmetric x-distance to knee
+            leg_offset = x - knee[0]
+            opp_offset = opp_ankle[0] - opp_knee[0]
+            if abs(leg_offset - opp_offset) > max_offset:
+                x = knee[0] + np.clip(leg_offset, -max_offset, max_offset)
+
+        # 4️⃣ Constrain to segmentation mask if provided
+        if mask is not None and len(mask.shape) == 2:
+            h, w = mask.shape
+            px, py = int(round(x)), int(round(y))
+            # If outside mask, move to nearest non-zero pixel in vertical line
+            if 0 <= px < w and 0 <= py < h:
+                if mask[py, px] == 0:
+                    # Search upward and downward in mask for first non-zero pixel
+                    search_range = 10
+                    found = False
+                    for dy in range(1, search_range):
+                        for ny in [py - dy, py + dy]:
+                            if 0 <= ny < h and mask[ny, px] > 0:
+                                y = ny
+                                found = True
+                                break
+                        if found:
+                            break
+
+        return (x, y, z)
+
 
     # MediaPipe landmark indices
     L_HIP, L_KNEE, L_ANKLE = 23, 25, 27
@@ -93,8 +156,9 @@ class AlignmentAnalyzer:
             lm_px[i] = self._to_pixel(raw, image.shape) if raw is not None else None
 
         # Required joints
-        Lh, Lk, La = lm_px.get(self.L_HIP), lm_px.get(self.L_KNEE), lm_px.get(self.L_ANKLE)
-        Rh, Rk, Ra = lm_px.get(self.R_HIP), lm_px.get(self.R_KNEE), lm_px.get(self.R_ANKLE)
+        Lh, Lk, La = lm_px.get(self.L_HIP), lm_px.get(self.L_KNEE), self._validate_ankle(self.L_HIP, self.L_KNEE, self.L_ANKLE, lm_px, mask)
+        Rh, Rk, Ra = lm_px.get(self.R_HIP), lm_px.get(self.R_KNEE), self._validate_ankle(self.R_HIP, self.R_KNEE, self.R_ANKLE, lm_px, mask)
+
 
         if any(p is None for p in [Lh, Lk, La, Rh, Rk, Ra]):
             return {"summary": "Insufficient landmarks for analysis", "visualized_image": image}
@@ -144,7 +208,7 @@ class AlignmentAnalyzer:
             knock_knee_indicators += 2  # Strong indicator
         if knee_hip_ratio < 0.85:  # Knees closer together than hips
             knock_knee_indicators += 1
-        if mid_ratio < -0.08:  # Knees positioned inward relative to hips
+        if mid_ratio < -0.12:  # Knees positioned inward relative to hips
             knock_knee_indicators += 1
             
         # Check for bow-leg (knees pointing outward, ankles closer together)
@@ -194,6 +258,10 @@ class AlignmentAnalyzer:
         cv2.line(vis, (int(Rk[0]), int(Rk[1])), (int(Ra[0]), int(Ra[1])), (0, 0, 255), 2)
 
         if mask is not None and len(mask.shape) == 2:
+            # Ensure mask has same dimensions as visualization image
+            if mask.shape[:2] != vis.shape[:2]:
+                mask = cv2.resize(mask, (vis.shape[1], vis.shape[0]), interpolation=cv2.INTER_NEAREST)
+            
             mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
             overlay = vis.copy()
             overlay[:, :, 2] = np.maximum(overlay[:, :, 2], mask)
