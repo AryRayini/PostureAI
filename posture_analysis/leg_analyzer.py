@@ -3,9 +3,9 @@ import numpy as np
 from posture_analysis.utils import calculate_angle
 from posture_analysis.mirror_utils import detect_and_correct_mirror
 
-class AlignmentAnalyzer:
+class LegAnalyzer:
     """
-    AlignmentAnalyzer:
+    LegAnalyzer:
       - robust handling of landmark formats
       - knee angle + knee/hip ratio + lateral offset analysis
       - smooth classification

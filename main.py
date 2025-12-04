@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from posture_analysis.segmentation import BodySegmentation
 from posture_analysis.pose_estimation import PoseEstimator
-from posture_analysis.fusion import AlignmentAnalyzer
+from posture_analysis.posture_evaluator import PostureEvaluator
 
 def main(image_path):
     # Load image
@@ -20,9 +20,9 @@ def main(image_path):
     landmarks = pose_estimator.get_landmarks(image)
 
     # --- Step 3: Fusion & Analysis ---
-    analyzer = AlignmentAnalyzer()
+    analyzer = PostureEvaluator()
     print("Landmarks:", landmarks)
-    result = analyzer.evaluate_leg_alignment(landmarks, mask, image)
+    result = analyzer.analyze(landmarks, mask, image)
 
     # --- Step 4: Display Result in resizable window ---
     print(result["summary"])
