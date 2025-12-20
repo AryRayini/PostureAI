@@ -6,8 +6,8 @@ class PoseEstimator:
     # Lower body landmark indices we need for leg alignment analysis
     REQUIRED_LANDMARKS = [23, 24, 25, 26, 27, 28]  # L_HIP, R_HIP, L_KNEE, R_KNEE, L_ANKLE, R_ANKLE
     
-    def __init__(self, static_mode=True, selfie_mode=False, 
-                 min_detection_confidence=0.3, model_complexity=0,
+    def __init__(self, static_mode=True, selfie_mode=False,
+                 min_detection_confidence=0.3, model_complexity=2,
                  enhance_image=True):
         """
         PoseEstimator initializes MediaPipe Pose for static image processing.
@@ -19,10 +19,10 @@ class PoseEstimator:
             min_detection_confidence (float): Minimum confidence threshold (0.0-1.0).
                 Lower values (0.3) make detection more lenient for occluded upper body.
                 Higher values (0.5-0.7) can improve accuracy but may miss low-confidence detections.
-            model_complexity (int): Model complexity (0, 1, or 2).
+            model_complexity (int): Model complexity (0, 1, or 2). Default is 2.
                 0 = lightest, fastest, most lenient (best for partial visibility)
                 1 = balanced - often better accuracy for landmark positioning
-                2 = most accurate, but stricter requirements
+                2 = most accurate, but stricter requirements (default)
             enhance_image (bool): If True, applies image enhancement (contrast, sharpening)
                 to improve detection accuracy.
         """

@@ -142,12 +142,12 @@ class LegAnalyzer:
                 else:
                     norm_landmarks.append((x0, y0, lm[2] if len(lm) > 2 else 0.0))
 
-        # Mirror detection - disabled for posture analysis
-        # For posture analysis, we don't need to correct mirroring as we analyze relative positions
-        mirror_info = {"mirrored": False, "confidence": 0.0}
-        corrected_norm = norm_landmarks
-        mirrored = False
-        mirror_confidence = 0.0
+        # Mirror detection for posture analysis
+        # Important for correct left/right classification in bow-leg vs knock-knee detection
+        mirror_info = detect_and_correct_mirror(norm_landmarks, image.shape)
+        corrected_norm = mirror_info["corrected_landmarks"]
+        mirrored = mirror_info["mirrored"]
+        mirror_confidence = mirror_info["confidence"]
 
         # Map normalized landmarks to pixels
         lm_px = {}
@@ -193,6 +193,14 @@ class LegAnalyzer:
         RATIO_EPS = 0.12
         NORMAL_RATIO_MIN = self.NORMAL_RATIO_MIN - RATIO_EPS
         NORMAL_RATIO_MAX = self.NORMAL_RATIO_MAX + RATIO_EPS
+        
+        # Adjusted normal range for knee_hip_ratio to be more inclusive
+        # Many normal people have knee_hip_ratio slightly below 0.88
+        ADJUSTED_KNEE_HIP_MIN = 0.75  # Even more inclusive lower bound
+        
+        # Adjusted normal range for ankle_hip_ratio to be more inclusive
+        # Many normal people have ankle_hip_ratio slightly below 0.65
+        ADJUSTED_ANKLE_HIP_MIN = 0.60  # More inclusive lower bound
 
         # Classification with improved logic using ankle-hip ratio
         # Key insight: Bow-legs have ankles closer together than hips
@@ -200,48 +208,48 @@ class LegAnalyzer:
         
         # Check for knock-knee (knees pointing inward, ankles further apart)
         knock_knee_indicators = 0
+        if ankle_hip_ratio > 1.1:  # Ankles further apart than hips
+            knock_knee_indicators += 3  # Strong indicator
+        if knee_hip_ratio < 0.9:  # Knees closer together than hips
+            knock_knee_indicators += 2
+        if mid_ratio < -0.08:  # Knees positioned inward relative to hips
+            knock_knee_indicators += 2
         if left_angle < NORMAL_ANGLE_LOW:
             knock_knee_indicators += 1
         if right_angle < NORMAL_ANGLE_LOW:
             knock_knee_indicators += 1
-        if ankle_hip_ratio > 1.1:  # Ankles further apart than hips
-            knock_knee_indicators += 2  # Strong indicator
-        if knee_hip_ratio < 0.85:  # Knees closer together than hips
-            knock_knee_indicators += 1
-        if mid_ratio < -0.12:  # Knees positioned inward relative to hips
-            knock_knee_indicators += 1
-            
+
         # Check for bow-leg (knees pointing outward, ankles closer together)
         bow_leg_indicators = 0
+        if ankle_hip_ratio < 0.60:  # Ankles closer together than hips (further adjusted threshold)
+            bow_leg_indicators += 3  # Strong indicator
+        if knee_hip_ratio > 1.1:  # Knees further apart than hips
+            bow_leg_indicators += 2
+        if mid_ratio > 0.08:  # Knees positioned outward relative to hips (adjusted threshold)
+            bow_leg_indicators += 2
         if left_angle > NORMAL_ANGLE_HIGH:
             bow_leg_indicators += 1
         if right_angle > NORMAL_ANGLE_HIGH:
             bow_leg_indicators += 1
-        if ankle_hip_ratio < 0.7:  # Ankles much closer together than hips
-            bow_leg_indicators += 2  # Strong indicator
-        if knee_hip_ratio > 1.15:  # Knees further apart than hips
-            bow_leg_indicators += 1
-        if mid_ratio > 0.08:  # Knees positioned outward relative to hips
-            bow_leg_indicators += 1
-        
+
         # Determine condition based on strongest indicators
-        # Prioritize ankle-hip ratio as it's the most reliable indicator
-        if ankle_hip_ratio < 0.7:  # Strong bow-leg indicator
+        # Prioritize normal range check first, then indicators
+        if (
+            NORMAL_ANGLE_LOW <= left_angle <= NORMAL_ANGLE_HIGH
+            and NORMAL_ANGLE_LOW <= right_angle <= NORMAL_ANGLE_HIGH
+            and ADJUSTED_KNEE_HIP_MIN <= knee_hip_ratio <= NORMAL_RATIO_MAX
+            and ADJUSTED_ANKLE_HIP_MIN <= ankle_hip_ratio <= 1.1  # Normal ankle-hip ratio (adjusted lower bound)
+            and -0.05 <= mid_ratio <= 0.05
+        ):
+            condition = "Normal"
+        elif bow_leg_indicators >= 3:
             condition = "Bow-Leg"
-        elif ankle_hip_ratio > 1.1:  # Strong knock-knee indicator
+        elif knock_knee_indicators >= 3:
             condition = "Knock-Knee"
         elif bow_leg_indicators >= 2:
             condition = "Bow-Leg"
         elif knock_knee_indicators >= 2:
             condition = "Knock-Knee"
-        elif (
-            NORMAL_ANGLE_LOW <= left_angle <= NORMAL_ANGLE_HIGH
-            and NORMAL_ANGLE_LOW <= right_angle <= NORMAL_ANGLE_HIGH
-            and NORMAL_RATIO_MIN <= knee_hip_ratio <= NORMAL_RATIO_MAX
-            and 0.7 <= ankle_hip_ratio <= 1.1  # Normal ankle-hip ratio
-            and -0.05 <= mid_ratio <= 0.05
-        ):
-            condition = "Normal"
         else:
             condition = "Normal"  # Default to normal if unclear
 

@@ -50,5 +50,5 @@ def main(image_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    path = "user_data/samples/19.jpg"
+    path = "user_data/samples/8.jpg"
     main(path)
