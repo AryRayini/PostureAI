@@ -1,6 +1,7 @@
 from posture_analysis.leg_analyzer import LegAnalyzer
 from posture_analysis.kyphosis_analyzer import KyphosisAnalyzer
 from posture_analysis.lordosis_analyzer import LordosisAnalyzer
+from configs.lordosis_settings import NORMAL_PELVIC_TILT, SEVERITY_THRESHOLDS
 
 class PostureEvaluator:
     def __init__(self):

@@ -31,3 +31,8 @@ def calculate_angle(a, b, c):
 
     # Convert the angle from radians to degrees and return it
     return math.degrees(math.acos(cos_angle))
+
+
+def calculate_distance(p1, p2):
+    """Calculate the Euclidean distance between two 2D points"""
+    return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
